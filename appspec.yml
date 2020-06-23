@@ -1,0 +1,27 @@
+#This folder and its contents were created by following the guide on "How to
+#Deploy Wordpress to an Amazon EC2 Instance - Step 2: Configure Your Source Content to Be
+#Deployed to the Amazon Linux or Red Hat Enterprise Linux Amazon EC2 Instance". See reference link below.
+#https://docs.aws.amazon.com/codedeploy/latest/userguide/tutorials-wordpress-configure-content.html
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /var/www/html/WordPress
+hooks:
+  BeforeInstall:
+    - location: scripts/install_dependencies.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/change_permissions.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: scripts/start_server.sh
+    #- location: scripts/create_test_db.sh
+      timeout: 300
+      runas: root
+  ApplicationStop:
+    - location: scripts/stop_server.sh
+      timeout: 300
+      runas: root
