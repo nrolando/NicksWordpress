@@ -58,13 +58,14 @@ RUN apt-get install -y mariadb-server mariadb-client; \
     service mysql start; \
     mysql -e "CREATE USER 'nicks_wp_user'@'%' IDENTIFIED BY 'easypw123';"; \
     mysql -e "CREATE DATABASE nickswp;"; \
-    mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'web_user'@'%';"; \
+    mysql -e "GRANT ALL PRIVILEGES ON nickswp.* TO 'nicks_wp_user'@'%';"; \
     mysql -e "FLUSH PRIVILEGES;"; \
     mkdir /var/www/db_backups;
 
-COPY C:/www/db_backups/nickswp_bu.sql /var/www/db_backups/nickswp_bu.sql
+COPY nickswp_bu.sql /var/www/db_backups/nickswp_bu.sql
 
 # Restore database from backup file
+RUN mysql -u root nickswp < /var/www/db_backups/nickswp_bu.sql;
 
 # Create web-user and add to group www-data, and set permssions
 RUN useradd -d /home/web-user -m web-user -p easypw123; \
