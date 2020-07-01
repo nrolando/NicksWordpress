@@ -1,3 +1,5 @@
+# Notes: You should break this up into a docker-compose and have mysql and apache in separate containers.
+
 # Current Version 2.1
 FROM ubuntu:18.04
 
@@ -13,7 +15,7 @@ RUN apt-get install -y curl zsh nano git htop vim unzip sudo; \
 # Install SSH deps
 RUN apt-get install -y openssh-server; \
     mkdir -p /root/.ssh; \
-    touch /root/.ssh/authorized_keys
+    touch /root/.ssh/authorized_keys;
 
 # Install Apache
 RUN apt-get install -y apache2; \
@@ -52,7 +54,7 @@ RUN apt-get install -y software-properties-common zip; \
     sed -i "s^memory_limit = 128M^memory_limit=1024M^g" /etc/php/7.3/apache2/php.ini; \
     sed -i "s^max_execution_time = 30^max_execution_time = 300^g" /etc/php/7.3/apache2/php.ini;
 
-# Install MySQL Server. Create user, password, database.
+# Install MySQL Server. Create user, password, database. Restore db from backup file.
 RUN apt-get install -y mariadb-server mariadb-client; \
     sed -i "s^bind-address		= 127.0.0.1^bind-address = 0.0.0.0^g" /etc/mysql/mariadb.conf.d/50-server.cnf; \
     service mysql start; \
@@ -60,19 +62,18 @@ RUN apt-get install -y mariadb-server mariadb-client; \
     mysql -e "CREATE DATABASE nickswp;"; \
     mysql -e "GRANT ALL PRIVILEGES ON nickswp.* TO 'nicks_wp_user'@'%';"; \
     mysql -e "FLUSH PRIVILEGES;"; \
-    mkdir /var/www/db_backups;
-
-COPY nickswp_bu.sql /var/www/db_backups/nickswp_bu.sql
-
-# Restore database from backup file
-RUN mysql -u root nickswp < /var/www/db_backups/nickswp_bu.sql;
+	mysql -u root nickswp < /var/www/html/nickswp_bu.sql;
 
 # Create web-user and add to group www-data, and set permssions
 RUN useradd -d /home/web-user -m web-user -p easypw123; \
 	usermod -a -G www-data web-user; \
 	chown -R web-user:web-user /var/www/html/*; \
-	find /var/www/html/ -type f -exec chmod 644 {} \; \
-	find /var/www/html/ -type d -exec chmod 755 {} \;
+	# In these find statements, the 1st semi-colon is escaped so that it is a terminator for the exec statement and not the entire find statement
+	# which the 2nd semi-colon does. https://stackoverflow.com/questions/19737525/find-type-f-exec-chmod-644
+	find /var/www/html/ -type f -exec chmod 644 {} \;; \
+	find /var/www/html/ -type d -exec chmod 755 {} \;;
 
-# Runs mysql, apache processes
-CMD apachectl -D FOREGROUND;
+EXPOSE 80 443 3306
+
+# Run mysql service, and apache in foreground
+CMD service mysql start; apachectl -D FOREGROUND;
